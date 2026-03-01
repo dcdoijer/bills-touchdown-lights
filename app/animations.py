@@ -19,18 +19,23 @@ def is_running() -> bool:
 
 
 async def cycle_together(hue: HueClient) -> None:
+    # transitiontime is in units of 100ms, so step_duration 1.0s = 10
+    transition = int(settings.step_duration * 10)
     elapsed = 0.0
     step = 0
     while elapsed < settings.animation_duration:
         color_name = COLOR_SEQUENCE[step % 3]
         xy = COLORS[color_name]
-        await asyncio.gather(*(hue.set_light(lid, xy) for lid in hue.light_ids))
+        await asyncio.gather(
+            *(hue.set_light(lid, xy, transition=transition) for lid in hue.light_ids)
+        )
         await asyncio.sleep(settings.step_duration)
         elapsed += settings.step_duration
         step += 1
 
 
 async def chase(hue: HueClient) -> None:
+    transition = int(settings.step_duration * 10)
     elapsed = 0.0
     step = 0
     while elapsed < settings.animation_duration:
@@ -38,7 +43,7 @@ async def chase(hue: HueClient) -> None:
         for i, lid in enumerate(hue.light_ids):
             color_idx = (step + i) % 3
             xy = COLORS[COLOR_SEQUENCE[color_idx]]
-            tasks.append(hue.set_light(lid, xy))
+            tasks.append(hue.set_light(lid, xy, transition=transition))
         await asyncio.gather(*tasks)
         await asyncio.sleep(settings.step_duration)
         elapsed += settings.step_duration

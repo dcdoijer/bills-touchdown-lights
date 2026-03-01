@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Animation
     default_pattern: str = "cycle_together"
     animation_duration: float = 30.0
-    step_duration: float = 0.5
+    step_duration: float = 1.0
 
     # ESPN polling intervals (seconds)
     espn_poll_interval_live: int = 10
