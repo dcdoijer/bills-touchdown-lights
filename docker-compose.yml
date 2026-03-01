@@ -1,0 +1,13 @@
+services:
+  bills-lights:
+    build: .
+    container_name: bills-touchdown-lights
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - BTL_HUE_BRIDGE_IP=192.168.1.100
+      - BTL_HUE_API_KEY=your-api-key-here
+      - BTL_HUE_LIGHT_IDS=["1","2","3"]
+      - BTL_DEFAULT_PATTERN=cycle_together
+      - BTL_ANIMATION_DURATION=30.0
+      - BTL_STEP_DURATION=0.5

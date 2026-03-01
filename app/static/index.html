@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bills Touchdown Lights</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 24px 16px;
+            background: #002244;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #C60C30;
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status-panel {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.95rem;
+        }
+        .status-row + .status-row {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .status-label {
+            color: rgba(255, 255, 255, 0.6);
+            width: 100px;
+            flex-shrink: 0;
+        }
+        .status-value {
+            font-weight: 600;
+        }
+        .indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        .indicator-on { background: #00e676; box-shadow: 0 0 6px #00e676; }
+        .indicator-off { background: #666; }
+        .indicator-anim { background: #C60C30; box-shadow: 0 0 6px #C60C30; animation: pulse 0.6s infinite alternate; }
+        @keyframes pulse { to { opacity: 0.4; } }
+
+        button, select {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .test-btn {
+            background: #C60C30;
+            color: white;
+            transition: background 0.2s;
+        }
+        .test-btn:hover { background: #a00a28; }
+        .test-btn:active { background: #800820; }
+        .toggle-on {
+            background: #00a651;
+            color: white;
+        }
+        .toggle-off {
+            background: #444;
+            color: #ccc;
+        }
+        select {
+            background: #ffffff;
+            color: #333;
+            appearance: auto;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bills Touchdown Lights</h1>
+
+    <div class="status-panel">
+        <div class="status-row">
+            <span class="status-label">Monitor</span>
+            <span id="monitorIndicator" class="indicator indicator-off"></span>
+            <span id="monitorStatus" class="status-value">Off</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">Game</span>
+            <span id="gameStatus" class="status-value">--</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">Animation</span>
+            <span id="animIndicator" class="indicator indicator-off"></span>
+            <span id="animStatus" class="status-value">Idle</span>
+        </div>
+    </div>
+
+    <button class="test-btn" onclick="testAnimation()">Test Sequence</button>
+
+    <label for="patternSelect">Animation Pattern</label>
+    <select id="patternSelect" onchange="setPattern(this.value)">
+        <option value="cycle_together">Cycle Together (R-W-B unison)</option>
+        <option value="chase">Chase / Staggered (wave)</option>
+    </select>
+
+    <button id="toggleBtn" class="toggle-off" onclick="toggleMonitor()">
+        Start Monitoring
+    </button>
+
+    <script>
+        let monitoring = false;
+
+        async function fetchStatus() {
+            try {
+                const r = await fetch("/api/status");
+                const d = await r.json();
+                monitoring = d.monitoring_active;
+
+                document.getElementById("monitorStatus").textContent =
+                    monitoring ? "Active" : "Off";
+                document.getElementById("monitorIndicator").className =
+                    "indicator " + (monitoring ? "indicator-on" : "indicator-off");
+
+                document.getElementById("gameStatus").textContent =
+                    d.game_status || "--";
+
+                const animRunning = d.animation_running;
+                document.getElementById("animStatus").textContent =
+                    animRunning ? "RUNNING" : "Idle";
+                document.getElementById("animIndicator").className =
+                    "indicator " + (animRunning ? "indicator-anim" : "indicator-off");
+
+                const btn = document.getElementById("toggleBtn");
+                btn.textContent = monitoring ? "Stop Monitoring" : "Start Monitoring";
+                btn.className = monitoring ? "toggle-on" : "toggle-off";
+
+                document.getElementById("patternSelect").value = d.current_pattern;
+            } catch (e) {
+                // ignore fetch errors
+            }
+        }
+
+        async function testAnimation() {
+            await fetch("/api/test", { method: "POST" });
+            setTimeout(fetchStatus, 500);
+        }
+
+        async function toggleMonitor() {
+            const endpoint = monitoring ? "/api/monitor/stop" : "/api/monitor/start";
+            await fetch(endpoint, { method: "POST" });
+            setTimeout(fetchStatus, 500);
+        }
+
+        async function setPattern(p) {
+            await fetch("/api/pattern?pattern=" + encodeURIComponent(p), { method: "POST" });
+        }
+
+        setInterval(fetchStatus, 5000);
+        fetchStatus();
+    </script>
+</body>
+</html>
